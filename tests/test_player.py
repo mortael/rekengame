@@ -123,3 +123,28 @@ class TestPlayerStats:
         assert player.correct_streak == 2
         player.record_answer(False)
         assert player.correct_streak == 0
+
+    def test_operation_accuracy_tracking(self, player):
+        player.record_answer(True, "addition")
+        player.record_answer(False, "addition")
+        player.record_answer(True, "division")
+        assert player.operation_accuracy("addition") == 50.0
+        assert player.operation_accuracy("division") == 100.0
+
+    def test_weakest_operations(self, player):
+        player.record_answer(False, "division")
+        player.record_answer(True, "division")
+        player.record_answer(False, "money")
+        player.record_answer(False, "money")
+        player.record_answer(True, "addition")
+        weakest = player.weakest_operations()
+        assert weakest[0] == "money"
+
+    def test_performance_summary_contains_operations(self, player):
+        player.record_answer(True, "addition")
+        player.record_answer(False, "addition")
+        summary = player.performance_summary()
+        assert summary["total_correct"] == 1
+        assert summary["total_wrong"] == 1
+        assert "addition" in summary["operations"]
+        assert summary["operations"]["addition"]["accuracy"] == 50.0

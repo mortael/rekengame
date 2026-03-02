@@ -15,6 +15,7 @@ class Player:
         self.correct_streak = 0
         self.total_correct = 0
         self.total_wrong = 0
+        self.operation_stats: dict[str, dict[str, int]] = {}
 
     # ------------------------------------------------------------------ #
     #  Health                                                              #
@@ -98,7 +99,7 @@ class Player:
     #  Stats                                                               #
     # ------------------------------------------------------------------ #
 
-    def record_answer(self, correct: bool) -> None:
+    def record_answer(self, correct: bool, operation: str | None = None) -> None:
         if correct:
             self.total_correct += 1
             self.correct_streak += 1
@@ -106,8 +107,55 @@ class Player:
             self.total_wrong += 1
             self.correct_streak = 0
 
+        if operation:
+            if operation not in self.operation_stats:
+                self.operation_stats[operation] = {"correct": 0, "wrong": 0}
+            key = "correct" if correct else "wrong"
+            self.operation_stats[operation][key] += 1
+
     def accuracy_percent(self) -> float:
         total = self.total_correct + self.total_wrong
         if total == 0:
             return 100.0
         return round(self.total_correct / total * 100, 1)
+
+    def operation_accuracy(self, operation: str) -> float:
+        """Return accuracy percentage for one operation type."""
+        stats = self.operation_stats.get(operation)
+        if not stats:
+            return 100.0
+        total = stats["correct"] + stats["wrong"]
+        if total == 0:
+            return 100.0
+        return round(stats["correct"] / total * 100, 1)
+
+    def weakest_operations(self, min_attempts: int = 1, limit: int = 3) -> list[str]:
+        """Return operations sorted from weakest to strongest based on accuracy."""
+        ranked: list[tuple[float, int, str]] = []
+        for op, stats in self.operation_stats.items():
+            attempts = stats["correct"] + stats["wrong"]
+            if attempts < min_attempts:
+                continue
+            ranked.append((self.operation_accuracy(op), attempts, op))
+
+        ranked.sort(key=lambda item: (item[0], -item[1], item[2]))
+        return [op for _, _, op in ranked[:limit]]
+
+    def performance_summary(self) -> dict:
+        """Summarize overall and per-operation performance in one object."""
+        operation_breakdown = {
+            op: {
+                "correct": stats["correct"],
+                "wrong": stats["wrong"],
+                "accuracy": self.operation_accuracy(op),
+            }
+            for op, stats in sorted(self.operation_stats.items())
+        }
+        return {
+            "total_correct": self.total_correct,
+            "total_wrong": self.total_wrong,
+            "accuracy": self.accuracy_percent(),
+            "best_streak": self.correct_streak,
+            "weakest_operations": self.weakest_operations(),
+            "operations": operation_breakdown,
+        }
