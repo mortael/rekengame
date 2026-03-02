@@ -1,9 +1,10 @@
 """Main game controller: state machine connecting all subsystems."""
 import time
 from ursina import (
-    Entity, FirstPersonController, camera, mouse,
+    Entity, camera, mouse,
     application, invoke, color, held_keys, Text, destroy, Vec2,
 )
+from ursina.prefabs.first_person_controller import FirstPersonController
 
 from src.config import (
     GameState, Difficulty, LEVEL_CONFIGS, ITEMS, WINDOW_TITLE,
@@ -297,7 +298,7 @@ class Game:
 
         problem = self._combat_problem
         correct = problem.check_answer(answer)
-        self.player.record_answer(correct)
+        self.player.record_answer(correct, problem.operation)
 
         self._combat_ui.show_feedback(correct, problem.answer)
 
@@ -458,6 +459,30 @@ class Game:
         self._init_level(next_index)
         if self.player:
             self.player.score = old_score
+
+
+    def generate_progress_report(self) -> str:
+        """Build a short learning progress report for the current player."""
+        if not self.player:
+            return "Nog geen actieve speler. Start eerst een spel."
+
+        summary = self.player.performance_summary()
+        lines = [
+            "=== Voortgangsrapport ===",
+            f"Juiste antwoorden: {summary['total_correct']}",
+            f"Foute antwoorden: {summary['total_wrong']}",
+            f"Nauwkeurigheid: {summary['accuracy']}%",
+        ]
+
+        weakest = summary["weakest_operations"]
+        if weakest:
+            lines.append("Oefen extra op: " + ", ".join(weakest))
+
+        for op, stats in summary["operations"].items():
+            lines.append(
+                f"- {op}: {stats['correct']} goed, {stats['wrong']} fout ({stats['accuracy']}%)"
+            )
+        return "\n".join(lines)
 
     def _trigger_game_over(self) -> None:
         self.state = GameState.GAME_OVER
