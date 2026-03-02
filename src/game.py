@@ -1,9 +1,10 @@
 """Main game controller: state machine connecting all subsystems."""
 import time
 from ursina import (
-    Entity, FirstPersonController, camera, mouse,
+    Entity, camera, mouse,
     application, invoke, color, held_keys, Text, destroy, Vec2,
 )
+from ursina.prefabs.first_person_controller import FirstPersonController
 
 from src.config import (
     GameState, Difficulty, LEVEL_CONFIGS, ITEMS, WINDOW_TITLE,
